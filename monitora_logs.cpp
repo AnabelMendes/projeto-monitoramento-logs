@@ -3,12 +3,11 @@
 
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace monitora {
-
-// Implementações mínimas para os testes compilarem
 
 bool LogEntry::operator==(const LogEntry& o) const {
     return day == o.day && month == o.month && year == o.year &&
@@ -69,6 +68,20 @@ std::string BuildTotalPath(const std::string& log_path) {
     return "";
 }
 
+/**
+ * @brief Ponto de entrada da lógica de monitoramento de logs.
+ *
+ * Lê o arquivo de lista, itera sobre os caminhos, verifica
+ * existência de cada log, faz o merge e grava o total_*.txt.
+ *
+ * @param list_path Caminho do arquivo logs.txt.
+ * @return Quantidade de logs processados com sucesso,
+ *         ou -1 se list_path não existir.
+ *
+ * @pre  list_path não é uma string vazia.
+ * @post Retorno == -1  =>  logs.txt não foi encontrado.
+ * @post Retorno >= 0   =>  logs.txt foi lido com sucesso.
+ */
 int MonitorLogs(const std::string& list_path) {
     if (!std::filesystem::exists(list_path)) {
         return -1;
