@@ -1,0 +1,53 @@
+===========================================================================
+ Sistema de Monitoramento de Logs
+ Disciplina: Tecnicas de Programacao 2 — CIC0198 — UnB
+===========================================================================
+
+COMO COMPILAR E EXECUTAR
+------------------------
+Pre-requisitos (Ambiente Linux / WSL):
+  sudo apt install g++ libgtest-dev gcovr cppcheck valgrind doxygen
+
+1. Compilar o projeto e os testes:
+   make
+
+2. Executar a bateria de testes (Google Test):
+   make test
+
+3. Verificar a cobertura de codigo (gcov/gcovr):
+   make coverage
+   (Gera o arquivo coverage.html para ser aberto no navegador. Requisito: >= 80%)
+
+4. Executar analise estatica (cppcheck):
+   make cppcheck
+
+5. Executar analise dinamica / vazamento de memoria (valgrind):
+   make valgrind
+
+6. Verificar o estilo de codigo (Google Style Guide / cpplint):
+   make lint
+
+7. Gerar a documentacao automatica (Doxygen):
+   make doxygen
+   (Gera a pasta html/. Abra html/index.html no navegador)
+
+8. Limpar os binarios e arquivos temporarios gerados:
+   make clean
+
+ESTRUTURA DO PROJETO
+--------------------
+  monitora_logs.hpp        — Interface publica do modulo e assinaturas.
+  monitora_logs.cpp        — Implementacao da logica e mesclagem de logs.
+  testa_monitora_logs.cpp  — Casos de teste estruturados no Google Test.
+  Makefile                 — Automacao de build, testes e analise de qualidade.
+  leiame.txt               — Este arquivo com as instrucoes de execucao.
+
+METODOLOGIA E REQUISITOS AVALIADOS
+----------------------------------
+* Desenvolvimento Orientado a Testes (TDD): Ciclo estrito RED -> GREEN -> REFACTOR.
+* Historico do Git: Comprovacao de desenvolvimento passo a passo via commits.
+  Para verificar o historico de commits estruturados do TDD, execute:
+  git log --oneline
+* Tabela de Decisao: Testes estruturados com base em tecnicas de caixa fechada.
+* Expressoes Regulares: Testes de cobertura baseados em tecnicas de caixa aberta.
+* Design by Contract: Funcoes documentadas com assertivas de entrada e saida.
