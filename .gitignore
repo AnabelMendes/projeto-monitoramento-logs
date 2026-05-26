@@ -1,5 +1,24 @@
-*. exe 
-*.o 
-*.gcov 
-*.gcda 
-*.gcno 
+# Executáveis
+*.exe
+*.o
+
+# Cobertura gcov
+*.gcov
+*.gcda
+*.gcno
+
+# Binário do executável de teste (Linux, sem extensão)
+testa_monitora_logs
+
+# Valgrind
+vgcore.*
+
+# Doxygen
+html/
+latex/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
