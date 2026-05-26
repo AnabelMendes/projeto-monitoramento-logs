@@ -137,3 +137,95 @@ TEST(BuildTotalPathTest, ExtractsFilenameFromUnixPath) {
     EXPECT_EQ(monitora::BuildTotalPath("/var/logs/log1.txt"),
               "total_log1.txt");
 }
+
+// ===========================================================================
+// T5/T6/T7/T8/T9/T10 — MergeEntries
+// Colunas 5–10 da Tabela de Decisão: comportamento do merge
+// ===========================================================================
+
+// Helper: cria um LogEntry rapidamente
+static monitora::LogEntry MakeEntry(int d, int mo, int y,
+                                    int h, int mi, int s,
+                                    const std::string& msg) {
+    monitora::LogEntry e;
+    e.day = d; e.month = mo; e.year = y;
+    e.hour = h; e.minute = mi; e.second = s;
+    e.message = msg;
+    return e;
+}
+
+// T5 — dois vetores vazios => resultado vazio
+TEST(MergeEntriesTest, BothEmpty) {
+    auto result = monitora::MergeEntries({}, {});
+    EXPECT_TRUE(result.empty());
+}
+
+// T6 — novo registro mais antigo vai para o início
+TEST(MergeEntriesTest, NewRecordInsertedAtBeginning) {
+    std::vector<monitora::LogEntry> existing = {
+        MakeEntry(17, 1, 2026, 14, 17, 46, "Registro B"),
+        MakeEntry(20, 1, 2026, 17, 45, 38, "Registro C"),
+    };
+    std::vector<monitora::LogEntry> incoming = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
+    };
+    auto result = monitora::MergeEntries(existing, incoming);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[0].day, 16);  // mais antigo primeiro
+    EXPECT_EQ(result[1].day, 17);
+    EXPECT_EQ(result[2].day, 20);
+}
+
+// T7 — novo registro mais recente vai para o final
+TEST(MergeEntriesTest, NewRecordInsertedAtEnd) {
+    std::vector<monitora::LogEntry> existing = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
+        MakeEntry(17, 1, 2026, 14, 17, 46, "Registro B"),
+    };
+    std::vector<monitora::LogEntry> incoming = {
+        MakeEntry(21, 1, 2026, 18, 55, 38, "Registro D"),
+    };
+    auto result = monitora::MergeEntries(existing, incoming);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[2].day, 21);  // mais recente por último
+}
+
+// T8 — novo registro no meio é inserido na posição correta
+TEST(MergeEntriesTest, NewRecordInsertedInMiddle) {
+    std::vector<monitora::LogEntry> existing = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
+        MakeEntry(20, 1, 2026, 17, 45, 38, "Registro C"),
+    };
+    std::vector<monitora::LogEntry> incoming = {
+        MakeEntry(18, 1, 2026, 11, 34, 21, "Registro B"),
+    };
+    auto result = monitora::MergeEntries(existing, incoming);
+    ASSERT_EQ(result.size(), 3u);
+    EXPECT_EQ(result[0].day, 16);
+    EXPECT_EQ(result[1].day, 18);  // inserido no meio
+    EXPECT_EQ(result[2].day, 20);
+}
+
+// T9 — duplicata é descartada
+TEST(MergeEntriesTest, DuplicateIsDiscarded) {
+    std::vector<monitora::LogEntry> existing = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
+    };
+    std::vector<monitora::LogEntry> incoming = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),  // igual
+    };
+    auto result = monitora::MergeEntries(existing, incoming);
+    ASSERT_EQ(result.size(), 1u);  // não duplicou
+}
+
+// T10 — todos duplicatas: total inalterado
+TEST(MergeEntriesTest, AllDuplicatesLeavesTotalUnchanged) {
+    std::vector<monitora::LogEntry> existing = {
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
+        MakeEntry(17, 1, 2026, 14, 17, 46, "Registro B"),
+    };
+    auto result = monitora::MergeEntries(existing, existing);
+    ASSERT_EQ(result.size(), 2u);  // mesmo tamanho
+    EXPECT_EQ(result[0].day, 16);
+    EXPECT_EQ(result[1].day, 17);
+}
