@@ -18,11 +18,11 @@ bool LogEntry::operator==(const LogEntry& o) const {
 }
 
 bool LogEntry::operator<(const LogEntry& o) const {
-    if (year   != o.year)   return year   < o.year;
-    if (month  != o.month)  return month  < o.month;
-    if (day    != o.day)    return day    < o.day;
-    if (hour   != o.hour)   return hour   < o.hour;
-    if (minute != o.minute) return minute < o.minute;
+    if (year   != o.year)   { return year   < o.year; }
+    if (month  != o.month)  { return month  < o.month; }
+    if (day    != o.day)    { return day    < o.day; }
+    if (hour   != o.hour)   { return hour   < o.hour; }
+    if (minute != o.minute) { return minute < o.minute; }
     return second < o.second;
 }
 
@@ -40,7 +40,7 @@ bool IsFileReadable(const std::string& path) {
 }
 
 bool ParseLogLine(const std::string& line, LogEntry* entry) {
-    if (line.empty()) return false;
+    if (line.empty()) { return false; }
 
     char sep1, sep2, sep3, sep4;
     int d, m, y, h, min, s;
@@ -51,19 +51,19 @@ bool ParseLogLine(const std::string& line, LogEntry* entry) {
         return false;
     }
 
-    if (sep1 != '/' || sep2 != '/') return false;
-    if (sep3 != ':' || sep4 != ':') return false;
-    if (d < 1 || d > 31)     return false;
-    if (m < 1 || m > 12)     return false;
-    if (y < 1900)             return false;
-    if (h < 0 || h > 23)     return false;
-    if (min < 0 || min > 59) return false;
-    if (s < 0 || s > 59)     return false;
+    if (sep1 != '/' || sep2 != '/') { return false; }
+    if (sep3 != ':' || sep4 != ':') { return false; }
+    if (d < 1 || d > 31)     { return false; }
+    if (m < 1 || m > 12)     { return false; }
+    if (y < 1900)             { return false; }
+    if (h < 0 || h > 23)     { return false; }
+    if (min < 0 || min > 59) { return false; }
+    if (s < 0 || s > 59)     { return false; }
 
     std::string msg;
     std::getline(iss, msg);
-    if (!msg.empty() && msg.front() == ' ') msg.erase(0, 1);
-    if (msg.size() > 100) msg = msg.substr(0, 100);
+    if (!msg.empty() && msg.front() == ' ') { msg.erase(0, 1); }
+    if (msg.size() > 100) { msg = msg.substr(0, 100); }
 
     entry->day = d; entry->month = m; entry->year  = y;
     entry->hour = h; entry->minute = min; entry->second = s;
@@ -71,26 +71,59 @@ bool ParseLogLine(const std::string& line, LogEntry* entry) {
     return true;
 }
 
+/**************************************************************************
+ * Função: ReadLogList
+ * Descrição
+ *   Lê o arquivo contendo a lista de caminhos de arquivos de log.
+ *   Cada linha não vazia é tratada como um caminho a ser monitorado.
+ * Parâmetros
+ *   list_path - caminho do arquivo texto com a lista de logs.
+ * Valor retornado
+ *   Vetor contendo as strings de caminhos não vazias.
+ * Assertiva de entrada
+ *   list_path != ""
+ *   O arquivo indicado por list_path existe e é legível.
+ * Assertiva de saída
+ *   Nenhum elemento do vetor retornado é uma string vazia.
+ **************************************************************************/
 std::vector<std::string> ReadLogList(const std::string& list_path) {
     std::ifstream file(list_path);
-    if (!file.is_open())
+    if (!file.is_open()) {
         throw std::runtime_error("Nao foi possivel abrir: " + list_path);
+    }
     std::vector<std::string> paths;
     std::string line;
-    while (std::getline(file, line))
-        if (!line.empty()) paths.push_back(line);
+    while (std::getline(file, line)) {
+        if (!line.empty()) { paths.push_back(line); }
+    }
     return paths;
 }
 
+/**************************************************************************
+ * Função: ReadLogFile
+ * Descrição
+ *   Realiza a leitura e o parse de todas as linhas de um arquivo de log.
+ *   Linhas com formato inválido são ignoradas com aviso no stderr.
+ * Parâmetros
+ *   log_path - caminho do arquivo de log a ser lido.
+ * Valor retornado
+ *   Vetor de estruturas LogEntry ordenadas cronologicamente.
+ * Assertiva de entrada
+ *   log_path != ""
+ *   IsFileReadable(log_path) == true
+ * Assertiva de saída
+ *   O vetor resultante está ordenado via operator<.
+ *   Todos os elementos passaram com sucesso pelo ParseLogLine.
+ **************************************************************************/
 std::vector<LogEntry> ReadLogFile(const std::string& log_path) {
     std::ifstream file(log_path);
-    if (!file.is_open())
+    if (!file.is_open()) {
         throw std::runtime_error("Nao foi possivel abrir: " + log_path);
-
+    }
     std::vector<LogEntry> entries;
     std::string line;
     while (std::getline(file, line)) {
-        if (line.empty()) continue;
+        if (line.empty()) { continue; }
         LogEntry entry;
         if (ParseLogLine(line, &entry)) {
             entries.push_back(entry);
@@ -103,15 +136,50 @@ std::vector<LogEntry> ReadLogFile(const std::string& log_path) {
     return entries;
 }
 
+/**************************************************************************
+ * Função: WriteLogFile
+ * Descrição
+ *   Escreve os registros de um vetor de LogEntry em arquivo de texto.
+ *   Sobrescreve o arquivo se ele já existir.
+ * Parâmetros
+ *   entries  - vetor de registros a serem gravados.
+ *   out_path - caminho do arquivo de saída.
+ * Valor retornado
+ *   void
+ * Assertiva de entrada
+ *   out_path != ""
+ *   entries está ordenado cronologicamente.
+ * Assertiva de saída
+ *   Arquivo gerado em disco contendo exatamente entries.size() linhas.
+ *   Cada linha segue o formato "DD/M/AAAA HH:MM:SS Mensagem".
+ **************************************************************************/
 void WriteLogFile(const std::vector<LogEntry>& entries,
                   const std::string& out_path) {
     std::ofstream file(out_path);
-    if (!file.is_open())
+    if (!file.is_open()) {
         throw std::runtime_error("Nao foi possivel criar: " + out_path);
-    for (const auto& e : entries)
+    }
+    for (const auto& e : entries) {
         file << e.ToString() << "\n";
+    }
 }
 
+/**************************************************************************
+ * Função: BuildTotalPath
+ * Descrição
+ *   Extrai o nome do arquivo de log do caminho original e adiciona
+ *   o prefixo "total_". Suporta separadores '/' e '\'.
+ * Parâmetros
+ *   log_path - caminho original do arquivo de log.
+ * Valor retornado
+ *   String contendo o nome do arquivo total correspondente.
+ * Assertiva de entrada
+ *   log_path != ""
+ *   log_path contém pelo menos um caractere de nome de arquivo.
+ * Assertiva de saída
+ *   O resultado começa obrigatoriamente com o prefixo "total_".
+ *   O resultado termina com o mesmo nome de arquivo de log_path.
+ **************************************************************************/
 std::string BuildTotalPath(const std::string& log_path) {
     size_t pos = log_path.find_last_of("/\\");
     std::string filename = (pos == std::string::npos)
@@ -120,40 +188,57 @@ std::string BuildTotalPath(const std::string& log_path) {
     return "total_" + filename;
 }
 
-/**
- * @brief Merge ordenado e sem duplicatas de dois vetores de LogEntry.
- *
- * @param existing Registros já presentes no total_*.txt.
- * @param incoming Novos registros lidos do log fonte.
- * @return Vetor resultante: ordenado cronologicamente, sem duplicatas.
- *
- * @pre  existing está ordenado (pode ser vazio).
- * @pre  incoming pode estar em qualquer ordem (pode ser vazio).
- * @post O resultado está estritamente ordenado (operator<).
- * @post Nenhum par de elementos é igual (operator==).
- * @post result.size() <= existing.size() + incoming.size().
- */
+/**************************************************************************
+ * Função: MergeEntries
+ * Descrição
+ *   Combina os registros existentes e os novos em um único vetor,
+ *   descartando duplicatas exatas (mesmo timestamp e mensagem).
+ * Parâmetros
+ *   existing - registros já presentes no total_*.txt (ordenados).
+ *   incoming - novos registros lidos do arquivo de log fonte.
+ * Valor retornado
+ *   Vetor unificado, ordenado cronologicamente e sem duplicatas.
+ * Assertiva de entrada
+ *   existing deve estar ordenado cronologicamente (pode ser vazio).
+ *   incoming pode estar em qualquer ordem (pode ser vazio).
+ * Assertiva de saída
+ *   result.size() <= existing.size() + incoming.size()
+ *   O vetor resultante está estritamente ordenado via operator<.
+ *   Nenhum par de elementos do resultado satisfaz operator==.
+ **************************************************************************/
 std::vector<LogEntry> MergeEntries(const std::vector<LogEntry>& existing,
                                    const std::vector<LogEntry>& incoming) {
-    // Une os dois vetores
     std::vector<LogEntry> combined;
     combined.reserve(existing.size() + incoming.size());
     combined.insert(combined.end(), existing.begin(), existing.end());
     combined.insert(combined.end(), incoming.begin(), incoming.end());
-
-    // Ordena cronologicamente
     std::sort(combined.begin(), combined.end());
-
-    // Remove duplicatas (mesmo timestamp e mesma mensagem)
     combined.erase(
         std::unique(combined.begin(), combined.end()),
         combined.end());
-
     return combined;
 }
 
+/**************************************************************************
+ * Função: MonitorLogs
+ * Descrição
+ *   Ponto de entrada modular que executa o fluxo completo do sistema.
+ *   Lê logs.txt, itera sobre os caminhos, verifica existência de cada
+ *   log, faz o merge ordenado e grava o total_*.txt correspondente.
+ * Parâmetros
+ *   list_path - caminho do arquivo mestre logs.txt.
+ * Valor retornado
+ *   Inteiro com a quantidade de arquivos processados com sucesso,
+ *   ou -1 se list_path não existir (erro fatal).
+ * Assertiva de entrada
+ *   list_path != ""
+ * Assertiva de saída
+ *   Retorno == -1  =>  logs.txt não foi encontrado.
+ *   Retorno >= 0   =>  logs.txt foi lido com sucesso.
+ *   Para cada log processado, total_*.txt existe e está ordenado.
+ **************************************************************************/
 int MonitorLogs(const std::string& list_path) {
-    if (!IsFileReadable(list_path)) return -1;
+    if (!IsFileReadable(list_path)) { return -1; }
 
     std::vector<std::string> log_paths = ReadLogList(list_path);
     int processados = 0;
@@ -163,27 +248,17 @@ int MonitorLogs(const std::string& list_path) {
             std::cerr << "[AVISO] Log nao encontrado: " << path << "\n";
             continue;
         }
-
-        // Deriva o caminho do total_*.txt
         std::string total_path = BuildTotalPath(path);
-
-        // Lê o histórico acumulado (pode não existir ainda)
         std::vector<LogEntry> existing;
         if (IsFileReadable(total_path)) {
             existing = ReadLogFile(total_path);
         }
-
-        // Lê os novos registros
         std::vector<LogEntry> incoming = ReadLogFile(path);
-
-        // Faz o merge ordenado e sem duplicatas
-        std::vector<LogEntry> merged = MergeEntries(existing, incoming);
-
-        // Grava o resultado
+        std::vector<LogEntry> merged   = MergeEntries(existing, incoming);
         WriteLogFile(merged, total_path);
-
         processados++;
     }
     return processados;
 }
+
 }  // namespace monitora
