@@ -163,9 +163,27 @@ int MonitorLogs(const std::string& list_path) {
             std::cerr << "[AVISO] Log nao encontrado: " << path << "\n";
             continue;
         }
+
+        // Deriva o caminho do total_*.txt
+        std::string total_path = BuildTotalPath(path);
+
+        // Lê o histórico acumulado (pode não existir ainda)
+        std::vector<LogEntry> existing;
+        if (IsFileReadable(total_path)) {
+            existing = ReadLogFile(total_path);
+        }
+
+        // Lê os novos registros
+        std::vector<LogEntry> incoming = ReadLogFile(path);
+
+        // Faz o merge ordenado e sem duplicatas
+        std::vector<LogEntry> merged = MergeEntries(existing, incoming);
+
+        // Grava o resultado
+        WriteLogFile(merged, total_path);
+
         processados++;
     }
     return processados;
 }
-
 }  // namespace monitora
