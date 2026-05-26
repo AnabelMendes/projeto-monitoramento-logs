@@ -372,3 +372,4 @@ TEST(IntegracaoTest, CenarioCompletoDoEnunciado) {
     std::remove(total.c_str());
     std::remove(list_file.c_str());
 }
+
