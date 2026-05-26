@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -86,7 +87,19 @@ int MonitorLogs(const std::string& list_path) {
     if (!std::filesystem::exists(list_path)) {
         return -1;
     }
-    return 0;
+
+    std::vector<std::string> log_paths = ReadLogList(list_path);
+    int processados = 0;
+
+    for (const auto& path : log_paths) {
+        if (!std::filesystem::exists(path)) {
+            std::cerr << "[AVISO] Log nao encontrado: " << path << "\n";
+            continue;
+        }
+        processados++;
+    }
+
+    return processados;
 }
 
 }  // namespace monitora
