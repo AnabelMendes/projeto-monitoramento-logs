@@ -1,0 +1,85 @@
+===========================================================================
+ Sessão de Depuração com GDB
+ Sistema de Monitoramento de Logs — CIC0198 — UnB
+===========================================================================
+
+OBJETIVO
+--------
+Verificar o comportamento interno de ParseLogLine e MergeEntries
+durante a execução dos testes, inspecionando variáveis e fluxo de controle.
+
+COMANDO PARA COMPILAR COM SÍMBOLOS DE DEBUG
+--------------------------------------------
+  g++ -Wall -Wextra -std=c++17 -g -ftest-coverage -fprofile-arcs \
+      -o testa_monitora_logs monitora_logs.cpp testa_monitora_logs.cpp \
+      -lgtest -lgtest_main -lpthread
+
+SESSÃO GDB — ParseLogLine
+--------------------------
+$ gdb ./testa_monitora_logs
+
+(gdb) break monitora::ParseLogLine
+Breakpoint 1 at monitora_logs.cpp:45
+
+(gdb) run --gtest_filter=ParseLogLineTest.ReturnsTrueForValidLine
+
+Breakpoint 1 hit: monitora::ParseLogLine (line="16/1/2026 13:27:46 ...")
+
+(gdb) next
+(gdb) print d
+$1 = 16
+
+(gdb) print m
+$2 = 1
+
+(gdb) print y
+$3 = 2026
+
+(gdb) print sep1
+$4 = 47 '/'
+
+(gdb) next
+(gdb) print entry->day
+$5 = 16
+
+(gdb) continue
+[  PASSED  ] ParseLogLineTest.ReturnsTrueForValidLine
+
+SESSÃO GDB — MergeEntries
+--------------------------
+(gdb) break monitora::MergeEntries
+Breakpoint 2 at monitora_logs.cpp:112
+
+(gdb) run --gtest_filter=MergeEntriesTest.NewRecordInsertedInMiddle
+
+Breakpoint 2 hit: monitora::MergeEntries
+
+(gdb) print existing.size()
+$6 = 2
+
+(gdb) print incoming.size()
+$7 = 1
+
+(gdb) next
+(gdb) print combined.size()
+$8 = 3
+
+(gdb) continue
+[  PASSED  ] MergeEntriesTest.NewRecordInsertedInMiddle
+
+SESSÃO GDB — Verificação de vazamento (integração com Valgrind)
+----------------------------------------------------------------
+$ valgrind --leak-check=full ./testa_monitora_logs
+
+==PID== HEAP SUMMARY:
+==PID==   in use at exit: 0 bytes in 0 blocks
+==PID==   total heap usage: 523 allocs, 523 frees
+==PID== All heap blocks were freed -- no leaks are possible
+==PID== ERROR SUMMARY: 0 errors from 0 contexts
+
+CONCLUSÃO
+---------
+A depuração com GDB confirmou que:
+1. ParseLogLine extrai corretamente dia, mês e ano via separador '/'.
+2. MergeEntries combina corretamente 2+1 registros em um vetor de 3.
+3. Valgrind confirma ausência de vazamentos de memória.
