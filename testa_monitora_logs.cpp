@@ -2,6 +2,7 @@
 // Disciplina: Técnicas de Programação 2 — CIC0198 — UnB
 
 #include <gtest/gtest.h>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 
@@ -23,4 +24,28 @@ TEST(MonitorLogsTest, LogsListNotFound) {
 
     // Assert
     EXPECT_EQ(resultado, -1);
+}
+
+// ===========================================================================
+// T2 — LogFileNotFound
+// Coluna 2 da Tabela de Decisão:
+//   C1=S (logs.txt existe)
+//   C2=N (caminho de log listado não existe)
+//   Ação esperada: MonitorLogs retorna 0 (processou 0 arquivos)
+// ===========================================================================
+TEST(MonitorLogsTest, LogFileNotFound) {
+    // Arrange: cria um logs.txt apontando para log inexistente
+    const std::string list_path = "test_logs_t2.txt";
+    std::ofstream f(list_path);
+    f << "log_que_nao_existe_xyz999.txt\n";
+    f.close();
+
+    // Act
+    int resultado = monitora::MonitorLogs(list_path);
+
+    // Assert: processou 0 arquivos (não deu erro fatal)
+    EXPECT_EQ(resultado, 0);
+
+    // Cleanup
+    std::remove(list_path.c_str());
 }
