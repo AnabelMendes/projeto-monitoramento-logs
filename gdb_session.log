@@ -1,0 +1,16 @@
+(gdb) file testa_monitora_logs
+Reading symbols from testa_monitora_logs...done.
+(gdb) break monitora::MergeEntries
+Breakpoint 1 at 0x4034f0: file monitora_logs.cpp, line 143.
+(gdb) run
+Starting program: testa_monitora_logs
+[Thread debugging using libthread_db enabled]
+Breakpoint 1, monitora::MergeEntries (existing=..., incoming=...) at monitora_logs.cpp:143
+143     std::vector<LogEntry> combined;
+(gdb) print existing.size()
+$1 = 2
+(gdb) next
+144     combined.reserve(existing.size() + incoming.size());
+(gdb) continue
+Continuing.
+[Inferior 1 (process 24152) exited normally]
