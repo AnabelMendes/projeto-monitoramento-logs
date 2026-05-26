@@ -229,3 +229,87 @@ TEST(MergeEntriesTest, AllDuplicatesLeavesTotalUnchanged) {
     EXPECT_EQ(result[0].day, 16);
     EXPECT_EQ(result[1].day, 17);
 }
+
+// ===========================================================================
+// TESTES DE EXPRESSÃO REGULAR (Caixa Aberta)
+// Cobrem os caminhos de ParseLogLine não exercitados pelos testes anteriores
+//
+// Regex do formato válido:
+// ^(\d{1,2})\/(\d{1,2})\/(\d{4})\s(\d{2}):(\d{2}):(\d{2})\s(.{1,100})$
+// ===========================================================================
+
+// RE1 — dia no limite inferior (1)
+TEST(RegexParseTest, DiaLimiteInferior) {
+    monitora::LogEntry e;
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "1/1/2026 00:00:00 Mensagem", &e));
+    EXPECT_EQ(e.day, 1);
+}
+
+// RE2 — dia no limite superior (31)
+TEST(RegexParseTest, DiaLimiteSuperior) {
+    monitora::LogEntry e;
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "31/12/2026 23:59:59 Mensagem", &e));
+    EXPECT_EQ(e.day, 31);
+}
+
+// RE3 — dia inválido (0) deve falhar
+TEST(RegexParseTest, DiaZeroInvalido) {
+    monitora::LogEntry e;
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "0/1/2026 10:00:00 Mensagem", &e));
+}
+
+// RE4 — dia inválido (32) deve falhar
+TEST(RegexParseTest, DiaTrintaDoisInvalido) {
+    monitora::LogEntry e;
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "32/1/2026 10:00:00 Mensagem", &e));
+}
+
+// RE5 — hora no limite superior (23)
+TEST(RegexParseTest, HoraLimiteSuperior) {
+    monitora::LogEntry e;
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "1/1/2026 23:00:00 Mensagem", &e));
+    EXPECT_EQ(e.hour, 23);
+}
+
+// RE6 — hora inválida (24) deve falhar
+TEST(RegexParseTest, HoraVinteQuatroInvalida) {
+    monitora::LogEntry e;
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "1/1/2026 24:00:00 Mensagem", &e));
+}
+
+// RE7 — minuto no limite superior (59)
+TEST(RegexParseTest, MinutoLimiteSuperior) {
+    monitora::LogEntry e;
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "1/1/2026 00:59:00 Mensagem", &e));
+    EXPECT_EQ(e.minute, 59);
+}
+
+// RE8 — minuto inválido (60) deve falhar
+TEST(RegexParseTest, MinutoSessentaInvalido) {
+    monitora::LogEntry e;
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "1/1/2026 00:60:00 Mensagem", &e));
+}
+
+// RE9 — mensagem com exatamente 100 caracteres (limite)
+TEST(RegexParseTest, MensagemCemCaracteres) {
+    monitora::LogEntry e;
+    std::string msg(100, 'X');
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "1/1/2026 00:00:00 " + msg, &e));
+    EXPECT_EQ(e.message.size(), 100u);
+}
+
+// RE10 — mês inválido (13) deve falhar
+TEST(RegexParseTest, MesTrezeInvalido) {
+    monitora::LogEntry e;
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "1/13/2026 00:00:00 Mensagem", &e));
+}
