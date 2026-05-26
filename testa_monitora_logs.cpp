@@ -49,3 +49,39 @@ TEST(MonitorLogsTest, LogFileNotFound) {
     // Cleanup
     std::remove(list_path.c_str());
 }
+
+// ===========================================================================
+// T3 — InvalidLineFormat
+// Coluna 3 da Tabela de Decisão:
+//   C1=S, C2=S, C3=N (linha tem formato inválido)
+//   Ação esperada: ParseLogLine retorna false
+// ===========================================================================
+TEST(ParseLogLineTest, ReturnsFalseForEmptyLine) {
+    monitora::LogEntry entry;
+    EXPECT_FALSE(monitora::ParseLogLine("", &entry));
+}
+
+TEST(ParseLogLineTest, ReturnsFalseForGarbage) {
+    monitora::LogEntry entry;
+    EXPECT_FALSE(monitora::ParseLogLine("isso nao e um log", &entry));
+}
+
+TEST(ParseLogLineTest, ReturnsFalseForWrongDateSeparator) {
+    monitora::LogEntry entry;
+    // Usa '-' em vez de '/' na data
+    EXPECT_FALSE(monitora::ParseLogLine(
+        "16-01-2026 13:27:46 Mensagem", &entry));
+}
+
+TEST(ParseLogLineTest, ReturnsTrueForValidLine) {
+    monitora::LogEntry entry;
+    EXPECT_TRUE(monitora::ParseLogLine(
+        "16/1/2026 13:27:46 Este e um exemplo de log", &entry));
+    EXPECT_EQ(entry.day,    16);
+    EXPECT_EQ(entry.month,   1);
+    EXPECT_EQ(entry.year,  2026);
+    EXPECT_EQ(entry.hour,   13);
+    EXPECT_EQ(entry.minute, 27);
+    EXPECT_EQ(entry.second, 46);
+    EXPECT_EQ(entry.message, "Este e um exemplo de log");
+}
