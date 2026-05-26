@@ -85,3 +85,55 @@ TEST(ParseLogLineTest, ReturnsTrueForValidLine) {
     EXPECT_EQ(entry.second, 46);
     EXPECT_EQ(entry.message, "Este e um exemplo de log");
 }
+
+// ===========================================================================
+// T4 — CreateTotalFromScratch
+// Coluna 4 da Tabela de Decisão:
+//   C1=S, C2=S, C3=S, C4=N (total_*.txt não existe ainda)
+//   Ação esperada: total_*.txt criado com registros ordenados
+// ===========================================================================
+TEST(CreateTotalTest, CreateTotalFromScratch) {
+    // Arrange: cria um arquivo de log com 2 entradas
+    const std::string log_path   = "test_log_t4.txt";
+    const std::string total_path = "total_test_log_t4.txt";
+    std::remove(total_path.c_str());
+
+    std::ofstream log_file(log_path);
+    log_file << "20/1/2026 17:45:38 Registro B\n";
+    log_file << "16/1/2026 13:27:46 Registro A\n";
+    log_file.close();
+
+    // Act
+    std::vector<monitora::LogEntry> entries =
+        monitora::ReadLogFile(log_path);
+    monitora::WriteLogFile(entries, total_path);
+
+    // Assert: arquivo criado com 2 linhas
+    std::ifstream result(total_path);
+    ASSERT_TRUE(result.is_open());
+    std::string line1, line2;
+    ASSERT_TRUE(std::getline(result, line1));
+    ASSERT_TRUE(std::getline(result, line2));
+    // Primeira linha deve ser o registro mais antigo
+    EXPECT_NE(line1.find("Registro A"), std::string::npos);
+    EXPECT_NE(line2.find("Registro B"), std::string::npos);
+
+    // Cleanup
+    std::remove(log_path.c_str());
+    std::remove(total_path.c_str());
+}
+
+TEST(BuildTotalPathTest, PrefixesTotal) {
+    EXPECT_EQ(monitora::BuildTotalPath("log1.txt"),
+              "total_log1.txt");
+}
+
+TEST(BuildTotalPathTest, ExtractsFilenameFromWindowsPath) {
+    EXPECT_EQ(monitora::BuildTotalPath("c:\\logs\\log1.txt"),
+              "total_log1.txt");
+}
+
+TEST(BuildTotalPathTest, ExtractsFilenameFromUnixPath) {
+    EXPECT_EQ(monitora::BuildTotalPath("/var/logs/log1.txt"),
+              "total_log1.txt");
+}
