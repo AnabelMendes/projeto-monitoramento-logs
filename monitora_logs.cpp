@@ -2,7 +2,6 @@
 #include "monitora_logs.hpp"
 
 #include <algorithm>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -83,17 +82,6 @@ std::vector<std::string> ReadLogList(const std::string& list_path) {
     return paths;
 }
 
-/**
- * @brief Lê todas as entradas válidas de um arquivo de log.
- *
- * @param log_path Caminho do arquivo de log a ser lido.
- * @return Vetor de LogEntry ordenado cronologicamente.
- *
- * @pre  log_path não é uma string vazia.
- * @pre  O arquivo existe e é legível.
- * @post O vetor contém apenas entradas com parse bem-sucedido.
- * @post O vetor está ordenado cronologicamente.
- */
 std::vector<LogEntry> ReadLogFile(const std::string& log_path) {
     std::ifstream file(log_path);
     if (!file.is_open())
@@ -115,35 +103,15 @@ std::vector<LogEntry> ReadLogFile(const std::string& log_path) {
     return entries;
 }
 
-/**
- * @brief Escreve um vetor de LogEntry em um arquivo de texto.
- *
- * @param entries  Vetor de entradas a serem gravadas.
- * @param out_path Caminho do arquivo de saída.
- *
- * @pre  out_path não é uma string vazia.
- * @post O arquivo existe com entries.size() linhas.
- */
 void WriteLogFile(const std::vector<LogEntry>& entries,
                   const std::string& out_path) {
     std::ofstream file(out_path);
     if (!file.is_open())
         throw std::runtime_error("Nao foi possivel criar: " + out_path);
-
-    for (const auto& e : entries) {
+    for (const auto& e : entries)
         file << e.ToString() << "\n";
-    }
 }
 
-/**
- * @brief Deriva o caminho do total_*.txt a partir do log fonte.
- *
- * @param log_path Caminho completo do log fonte.
- * @return Nome do arquivo total (ex: "total_log1.txt").
- *
- * @pre  log_path não é uma string vazia.
- * @post O retorno começa com "total_".
- */
 std::string BuildTotalPath(const std::string& log_path) {
     size_t pos = log_path.find_last_of("/\\");
     std::string filename = (pos == std::string::npos)
@@ -152,11 +120,36 @@ std::string BuildTotalPath(const std::string& log_path) {
     return "total_" + filename;
 }
 
+/**
+ * @brief Merge ordenado e sem duplicatas de dois vetores de LogEntry.
+ *
+ * @param existing Registros já presentes no total_*.txt.
+ * @param incoming Novos registros lidos do log fonte.
+ * @return Vetor resultante: ordenado cronologicamente, sem duplicatas.
+ *
+ * @pre  existing está ordenado (pode ser vazio).
+ * @pre  incoming pode estar em qualquer ordem (pode ser vazio).
+ * @post O resultado está estritamente ordenado (operator<).
+ * @post Nenhum par de elementos é igual (operator==).
+ * @post result.size() <= existing.size() + incoming.size().
+ */
 std::vector<LogEntry> MergeEntries(const std::vector<LogEntry>& existing,
                                    const std::vector<LogEntry>& incoming) {
-    // Implementação virá no ciclo T5
-    (void)existing; (void)incoming;
-    return {};
+    // Une os dois vetores
+    std::vector<LogEntry> combined;
+    combined.reserve(existing.size() + incoming.size());
+    combined.insert(combined.end(), existing.begin(), existing.end());
+    combined.insert(combined.end(), incoming.begin(), incoming.end());
+
+    // Ordena cronologicamente
+    std::sort(combined.begin(), combined.end());
+
+    // Remove duplicatas (mesmo timestamp e mesma mensagem)
+    combined.erase(
+        std::unique(combined.begin(), combined.end()),
+        combined.end());
+
+    return combined;
 }
 
 int MonitorLogs(const std::string& list_path) {
