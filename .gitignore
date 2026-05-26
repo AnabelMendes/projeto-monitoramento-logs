@@ -1,24 +1,31 @@
-# Executáveis
+# Executáveis e Objetos
 *.exe
 *.o
+*.out
+monitora_logs
+testa_monitora_logs
 
 # Cobertura gcov
 *.gcov
 *.gcda
 *.gcno
 
-# Binário do executável de teste (Linux, sem extensão)
-testa_monitora_logs
+# Logs de teste (gerados durante a execução)
+logs.txt
+total_*.txt
 
 # Valgrind
 vgcore.*
 
-# Doxygen
+# Doxygen (Documentação gerada automaticamente)
 html/
 latex/
+Doxyfile.bak
 
-# Editor / IDE
+# Editor / IDE (CLion, VS Code, etc.)
 .vscode/
 .idea/
+cmake-build-debug/
+cmake-build-release/
 *.swp
 *~
