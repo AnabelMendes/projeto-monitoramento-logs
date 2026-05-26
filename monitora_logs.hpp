@@ -32,6 +32,17 @@ std::string BuildTotalPath(const std::string& log_path);
 
 int MonitorLogs(const std::string& list_path);
 
+/**
+ * @brief Verifica se um arquivo existe e pode ser lido.
+ *
+ * @param path Caminho do arquivo a verificar.
+ * @return true se o arquivo existe e é legível, false caso contrário.
+ *
+ * @pre  path não é uma string vazia.
+ * @post Não modifica nenhum arquivo no disco.
+ */
+bool IsFileReadable(const std::string& path);
+
 }  // namespace monitora
 
 #endif  // MONITORA_LOGS_HPP_
