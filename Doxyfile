@@ -1,11 +1,26 @@
+# Informações Básicas do Projeto
 PROJECT_NAME           = "Sistema de Monitoramento de Logs"
 PROJECT_NUMBER         = 1.0
 OUTPUT_DIRECTORY       = .
-INPUT                  = monitora_logs.hpp monitora_logs.cpp
+
+# Arquivos de Entrada e Varredura
+INPUT                  = .
 RECURSIVE              = NO
-GENERATE_HTML          = YES
-GENERATE_LATEX         = NO
+FILE_PATTERNS          = *.hpp *.cpp *.h *.c
+
+# Exclusões Obrigatórias (Regra do enunciado e da IDE)
+EXCLUDE                = testa_monitora_logs.cpp catch.hpp gtest/
+
+# Formatadores e Estilo de Comentários
 EXTRACT_ALL            = YES
 JAVADOC_AUTOBRIEF      = YES
-EXCLUDE                = testa_monitora_logs.cpp
+
+# Formatos de Saída
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+
+# Configurações de Console
 QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
