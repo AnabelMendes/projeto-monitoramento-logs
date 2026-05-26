@@ -1,0 +1,11 @@
+PROJECT_NAME           = "Sistema de Monitoramento de Logs"
+PROJECT_NUMBER         = 1.0
+OUTPUT_DIRECTORY       = .
+INPUT                  = monitora_logs.hpp monitora_logs.cpp
+RECURSIVE              = NO
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+EXTRACT_ALL            = YES
+JAVADOC_AUTOBRIEF      = YES
+EXCLUDE                = testa_monitora_logs.cpp
+QUIET                  = YES
