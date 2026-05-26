@@ -313,3 +313,62 @@ TEST(RegexParseTest, MesTrezeInvalido) {
     EXPECT_FALSE(monitora::ParseLogLine(
         "1/13/2026 00:00:00 Mensagem", &e));
 }
+
+// ===========================================================================
+// TESTE DE INTEGRAÇÃO — Cenário completo do enunciado
+// Simula o exemplo exato descrito no PDF do professor:
+//   1. Processa c:\logs\log1.txt (2 registros)
+//   2. Processa f:\logs\log1.txt (1 registro no meio)
+//   Resultado: total_log1.txt com 5 registros ordenados
+// ===========================================================================
+TEST(IntegracaoTest, CenarioCompletoDoEnunciado) {
+    // Arrange: arquivos temporários simulando os dois diretórios
+    const std::string log_a     = "test_log1_c.txt";
+    const std::string log_b     = "test_log1_f.txt";
+    const std::string total     = "total_test_log1_c.txt";
+    const std::string list_file = "test_logs_integracao.txt";
+
+    std::remove(total.c_str());
+
+    // Simula c:\logs\log1.txt
+    std::ofstream fa(log_a);
+    fa << "16/1/2026 13:27:46 Este e um exemplo de log\n";
+    fa << "20/1/2026 17:45:38 Este e um exemplo de log\n";
+    fa.close();
+
+    // Primeiro processamento
+    auto existing = monitora::ReadLogFile(log_a);
+    monitora::WriteLogFile(existing, total);
+
+    // Adiciona registros do total existente (simulando estado anterior)
+    std::ofstream ft(total, std::ios::app);
+    ft << "17/1/2026 14:17:46 Este e um exemplo de log\n";
+    ft << "21/1/2026 18:55:38 Este e um exemplo de log\n";
+    ft.close();
+
+    // Simula f:\logs\log1.txt
+    std::ofstream fb(log_b);
+    fb << "18/1/2026 11:34:21 Este e um exemplo de log\n";
+    fb.close();
+
+    // Act: merge do segundo log com o total existente
+    auto prev    = monitora::ReadLogFile(total);
+    auto inc     = monitora::ReadLogFile(log_b);
+    auto merged  = monitora::MergeEntries(prev, inc);
+    monitora::WriteLogFile(merged, total);
+
+    // Assert: 5 registros ordenados cronologicamente
+    auto result = monitora::ReadLogFile(total);
+    ASSERT_EQ(result.size(), 5u);
+    EXPECT_EQ(result[0].day, 16);
+    EXPECT_EQ(result[1].day, 17);
+    EXPECT_EQ(result[2].day, 18);  // inserido no meio
+    EXPECT_EQ(result[3].day, 20);
+    EXPECT_EQ(result[4].day, 21);
+
+    // Cleanup
+    std::remove(log_a.c_str());
+    std::remove(log_b.c_str());
+    std::remove(total.c_str());
+    std::remove(list_file.c_str());
+}
