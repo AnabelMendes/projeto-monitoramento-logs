@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,6 +26,65 @@ bool LogEntry::operator<(const LogEntry& o) const {
     return second < o.second;
 }
 
+bool IsFileReadable(const std::string& path) {
+    std::ifstream f(path);
+    return f.good();
+}
+
+/**
+ * @brief Parseia uma linha de log no formato DD/M/AAAA HH:MM:SS Mensagem.
+ *
+ * @param line  Linha bruta a ser parseada.
+ * @param entry Parâmetro de saída preenchido em caso de sucesso.
+ * @return true se válida e entry preenchido; false caso contrário.
+ *
+ * @pre  line não é uma string vazia.
+ * @post Se true: entry.day∈[1,31], month∈[1,12], hour∈[0,23],
+ *       minute∈[0,59], second∈[0,59], message.size()<=100.
+ * @post Se false: entry está em estado indefinido.
+ */
+bool ParseLogLine(const std::string& line, LogEntry* entry) {
+    if (line.empty()) return false;
+
+    char sep1, sep2, sep3, sep4, sep5;
+    int d, m, y, h, min, s;
+
+    // Lê: DD/M/AAAA HH:MM:SS
+    std::istringstream iss(line);
+    if (!(iss >> d >> sep1 >> m >> sep2 >> y
+              >> h >> sep3 >> min >> sep4 >> s)) {
+        return false;
+    }
+
+    // Valida separadores
+    if (sep1 != '/' || sep2 != '/') return false;
+    if (sep3 != ':' || sep4 != ':') return false;
+
+    // Valida ranges
+    if (d < 1 || d > 31)    return false;
+    if (m < 1 || m > 12)    return false;
+    if (y < 1900)            return false;
+    if (h < 0 || h > 23)    return false;
+    if (min < 0 || min > 59) return false;
+    if (s < 0 || s > 59)    return false;
+
+    // Lê o restante como mensagem
+    std::string msg;
+    std::getline(iss, msg);
+    if (!msg.empty() && msg.front() == ' ') msg.erase(0, 1);
+    if (msg.size() > 100) msg = msg.substr(0, 100);
+
+    entry->day     = d;
+    entry->month   = m;
+    entry->year    = y;
+    entry->hour    = h;
+    entry->minute  = min;
+    entry->second  = s;
+    entry->message = msg;
+
+    return true;
+}
+
 std::vector<std::string> ReadLogList(const std::string& list_path) {
     std::ifstream file(list_path);
     if (!file.is_open()) {
@@ -36,12 +96,6 @@ std::vector<std::string> ReadLogList(const std::string& list_path) {
         if (!line.empty()) paths.push_back(line);
     }
     return paths;
-}
-
-bool ParseLogLine(const std::string& line, LogEntry* entry) {
-    // Implementação virá no ciclo T3
-    (void)line; (void)entry;
-    return false;
 }
 
 std::vector<LogEntry> ReadLogFile(const std::string& log_path) {
@@ -72,19 +126,15 @@ std::string BuildTotalPath(const std::string& log_path) {
 /**
  * @brief Ponto de entrada da lógica de monitoramento de logs.
  *
- * Lê o arquivo de lista, itera sobre os caminhos, verifica
- * existência de cada log, faz o merge e grava o total_*.txt.
- *
  * @param list_path Caminho do arquivo logs.txt.
- * @return Quantidade de logs processados com sucesso,
- *         ou -1 se list_path não existir.
+ * @return Quantidade de logs processados, ou -1 se list_path não existir.
  *
  * @pre  list_path não é uma string vazia.
  * @post Retorno == -1  =>  logs.txt não foi encontrado.
  * @post Retorno >= 0   =>  logs.txt foi lido com sucesso.
  */
 int MonitorLogs(const std::string& list_path) {
-    if (!std::filesystem::exists(list_path)) {
+    if (!IsFileReadable(list_path)) {
         return -1;
     }
 
@@ -92,7 +142,7 @@ int MonitorLogs(const std::string& list_path) {
     int processados = 0;
 
     for (const auto& path : log_paths) {
-        if (!std::filesystem::exists(path)) {
+        if (!IsFileReadable(path)) {
             std::cerr << "[AVISO] Log nao encontrado: " << path << "\n";
             continue;
         }
