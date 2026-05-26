@@ -4,14 +4,15 @@
 # ===========================================================================
 
 CXX      = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -g \
-           -ftest-coverage -fprofile-arcs
-LDFLAGS  = -lgtest -lgtest_main -lpthread \
-           -fprofile-arcs
+CXXFLAGS = -Wall -Wextra -std=c++17 -g
+COVFLAGS = -ftest-coverage -fprofile-arcs
+LDFLAGS  = -lgtest -lgtest_main -lpthread
 
 SRC      = monitora_logs.cpp
 TEST_SRC = testa_monitora_logs.cpp
 TARGET   = testa_monitora_logs
+
+.PHONY: all test coverage cppcheck valgrind doxygen lint clean
 
 # ---------------------------------------------------------------------------
 # Alvo padrão: compila os testes
@@ -19,7 +20,7 @@ TARGET   = testa_monitora_logs
 all: $(TARGET)
 
 $(TARGET): $(SRC) $(TEST_SRC)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) $(COVFLAGS) -o $@ $^ $(LDFLAGS) $(COVFLAGS)
 
 # ---------------------------------------------------------------------------
 # Executa os testes
@@ -28,14 +29,14 @@ test: $(TARGET)
 	./$(TARGET) --gtest_color=yes
 
 # ---------------------------------------------------------------------------
-# Cobertura de código com gcov
+# Cobertura de código com gcov e gcovr
 # ---------------------------------------------------------------------------
 coverage: test
 	gcov $(SRC)
 	@echo ""
 	@echo "=== Resumo de cobertura ==="
 	gcovr -r . --html --html-details -o coverage.html
-	@echo "Abra coverage.html no navegador para ver o relatório."
+	@echo "Abra coverage.html no navegador para ver o relatorio."
 
 # ---------------------------------------------------------------------------
 # Análise estática
@@ -70,4 +71,5 @@ lint:
 # Limpeza
 # ---------------------------------------------------------------------------
 clean:
-	rm -f $(TARGET) *.o *.gcda *.gcno *.gcov coverage.html
+	rm -f $(TARGET) *.o *.gcda *.gcno *.gcov coverage*.html
+	rm -rf html/
