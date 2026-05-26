@@ -5,6 +5,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "monitora_logs.hpp"
 
@@ -15,14 +16,9 @@
 //   Ação esperada: MonitorLogs retorna -1
 // ===========================================================================
 TEST(MonitorLogsTest, LogsListNotFound) {
-    // Arrange: caminho que com certeza não existe
     const std::string caminho_inexistente =
         "arquivo_que_nao_existe_xyz123.txt";
-
-    // Act
     int resultado = monitora::MonitorLogs(caminho_inexistente);
-
-    // Assert
     EXPECT_EQ(resultado, -1);
 }
 
@@ -34,19 +30,10 @@ TEST(MonitorLogsTest, LogsListNotFound) {
 //   Ação esperada: MonitorLogs retorna 0 (processou 0 arquivos)
 // ===========================================================================
 TEST(MonitorLogsTest, LogFileNotFound) {
-    // Arrange: cria um logs.txt apontando para log inexistente
     const std::string list_path = "test_logs_t2.txt";
-    std::ofstream f(list_path);
-    f << "log_que_nao_existe_xyz999.txt\n";
-    f.close();
-
-    // Act
+    { std::ofstream f(list_path); f << "log_que_nao_existe_xyz999.txt\n"; }
     int resultado = monitora::MonitorLogs(list_path);
-
-    // Assert: processou 0 arquivos (não deu erro fatal)
     EXPECT_EQ(resultado, 0);
-
-    // Cleanup
     std::remove(list_path.c_str());
 }
 
@@ -68,7 +55,6 @@ TEST(ParseLogLineTest, ReturnsFalseForGarbage) {
 
 TEST(ParseLogLineTest, ReturnsFalseForWrongDateSeparator) {
     monitora::LogEntry entry;
-    // Usa '-' em vez de '/' na data
     EXPECT_FALSE(monitora::ParseLogLine(
         "16-01-2026 13:27:46 Mensagem", &entry));
 }
@@ -77,12 +63,12 @@ TEST(ParseLogLineTest, ReturnsTrueForValidLine) {
     monitora::LogEntry entry;
     EXPECT_TRUE(monitora::ParseLogLine(
         "16/1/2026 13:27:46 Este e um exemplo de log", &entry));
-    EXPECT_EQ(entry.day,    16);
-    EXPECT_EQ(entry.month,   1);
+    EXPECT_EQ(entry.day,     16);
+    EXPECT_EQ(entry.month,    1);
     EXPECT_EQ(entry.year,  2026);
-    EXPECT_EQ(entry.hour,   13);
-    EXPECT_EQ(entry.minute, 27);
-    EXPECT_EQ(entry.second, 46);
+    EXPECT_EQ(entry.hour,    13);
+    EXPECT_EQ(entry.minute,  27);
+    EXPECT_EQ(entry.second,  46);
     EXPECT_EQ(entry.message, "Este e um exemplo de log");
 }
 
@@ -93,39 +79,34 @@ TEST(ParseLogLineTest, ReturnsTrueForValidLine) {
 //   Ação esperada: total_*.txt criado com registros ordenados
 // ===========================================================================
 TEST(CreateTotalTest, CreateTotalFromScratch) {
-    // Arrange: cria um arquivo de log com 2 entradas
     const std::string log_path   = "test_log_t4.txt";
     const std::string total_path = "total_test_log_t4.txt";
     std::remove(total_path.c_str());
 
-    std::ofstream log_file(log_path);
-    log_file << "20/1/2026 17:45:38 Registro B\n";
-    log_file << "16/1/2026 13:27:46 Registro A\n";
-    log_file.close();
+    {
+        std::ofstream log_file(log_path);
+        log_file << "20/1/2026 17:45:38 Registro B\n";
+        log_file << "16/1/2026 13:27:46 Registro A\n";
+    }
 
-    // Act
     std::vector<monitora::LogEntry> entries =
         monitora::ReadLogFile(log_path);
     monitora::WriteLogFile(entries, total_path);
 
-    // Assert: arquivo criado com 2 linhas
     std::ifstream result(total_path);
     ASSERT_TRUE(result.is_open());
     std::string line1, line2;
     ASSERT_TRUE(std::getline(result, line1));
     ASSERT_TRUE(std::getline(result, line2));
-    // Primeira linha deve ser o registro mais antigo
     EXPECT_NE(line1.find("Registro A"), std::string::npos);
     EXPECT_NE(line2.find("Registro B"), std::string::npos);
 
-    // Cleanup
     std::remove(log_path.c_str());
     std::remove(total_path.c_str());
 }
 
 TEST(BuildTotalPathTest, PrefixesTotal) {
-    EXPECT_EQ(monitora::BuildTotalPath("log1.txt"),
-              "total_log1.txt");
+    EXPECT_EQ(monitora::BuildTotalPath("log1.txt"), "total_log1.txt");
 }
 
 TEST(BuildTotalPathTest, ExtractsFilenameFromWindowsPath) {
@@ -139,11 +120,9 @@ TEST(BuildTotalPathTest, ExtractsFilenameFromUnixPath) {
 }
 
 // ===========================================================================
-// T5/T6/T7/T8/T9/T10 — MergeEntries
+// T5–T10 — MergeEntries
 // Colunas 5–10 da Tabela de Decisão: comportamento do merge
 // ===========================================================================
-
-// Helper: cria um LogEntry rapidamente
 static monitora::LogEntry MakeEntry(int d, int mo, int y,
                                     int h, int mi, int s,
                                     const std::string& msg) {
@@ -154,13 +133,11 @@ static monitora::LogEntry MakeEntry(int d, int mo, int y,
     return e;
 }
 
-// T5 — dois vetores vazios => resultado vazio
 TEST(MergeEntriesTest, BothEmpty) {
     auto result = monitora::MergeEntries({}, {});
     EXPECT_TRUE(result.empty());
 }
 
-// T6 — novo registro mais antigo vai para o início
 TEST(MergeEntriesTest, NewRecordInsertedAtBeginning) {
     std::vector<monitora::LogEntry> existing = {
         MakeEntry(17, 1, 2026, 14, 17, 46, "Registro B"),
@@ -171,12 +148,11 @@ TEST(MergeEntriesTest, NewRecordInsertedAtBeginning) {
     };
     auto result = monitora::MergeEntries(existing, incoming);
     ASSERT_EQ(result.size(), 3u);
-    EXPECT_EQ(result[0].day, 16);  // mais antigo primeiro
+    EXPECT_EQ(result[0].day, 16);
     EXPECT_EQ(result[1].day, 17);
     EXPECT_EQ(result[2].day, 20);
 }
 
-// T7 — novo registro mais recente vai para o final
 TEST(MergeEntriesTest, NewRecordInsertedAtEnd) {
     std::vector<monitora::LogEntry> existing = {
         MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
@@ -187,10 +163,9 @@ TEST(MergeEntriesTest, NewRecordInsertedAtEnd) {
     };
     auto result = monitora::MergeEntries(existing, incoming);
     ASSERT_EQ(result.size(), 3u);
-    EXPECT_EQ(result[2].day, 21);  // mais recente por último
+    EXPECT_EQ(result[2].day, 21);
 }
 
-// T8 — novo registro no meio é inserido na posição correta
 TEST(MergeEntriesTest, NewRecordInsertedInMiddle) {
     std::vector<monitora::LogEntry> existing = {
         MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
@@ -202,51 +177,43 @@ TEST(MergeEntriesTest, NewRecordInsertedInMiddle) {
     auto result = monitora::MergeEntries(existing, incoming);
     ASSERT_EQ(result.size(), 3u);
     EXPECT_EQ(result[0].day, 16);
-    EXPECT_EQ(result[1].day, 18);  // inserido no meio
+    EXPECT_EQ(result[1].day, 18);
     EXPECT_EQ(result[2].day, 20);
 }
 
-// T9 — duplicata é descartada
 TEST(MergeEntriesTest, DuplicateIsDiscarded) {
     std::vector<monitora::LogEntry> existing = {
         MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
     };
     std::vector<monitora::LogEntry> incoming = {
-        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),  // igual
+        MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
     };
     auto result = monitora::MergeEntries(existing, incoming);
-    ASSERT_EQ(result.size(), 1u);  // não duplicou
+    ASSERT_EQ(result.size(), 1u);
 }
 
-// T10 — todos duplicatas: total inalterado
 TEST(MergeEntriesTest, AllDuplicatesLeavesTotalUnchanged) {
     std::vector<monitora::LogEntry> existing = {
         MakeEntry(16, 1, 2026, 13, 27, 46, "Registro A"),
         MakeEntry(17, 1, 2026, 14, 17, 46, "Registro B"),
     };
     auto result = monitora::MergeEntries(existing, existing);
-    ASSERT_EQ(result.size(), 2u);  // mesmo tamanho
+    ASSERT_EQ(result.size(), 2u);
     EXPECT_EQ(result[0].day, 16);
     EXPECT_EQ(result[1].day, 17);
 }
 
 // ===========================================================================
 // TESTES DE EXPRESSÃO REGULAR (Caixa Aberta)
-// Cobrem os caminhos de ParseLogLine não exercitados pelos testes anteriores
-//
 // Regex do formato válido:
 // ^(\d{1,2})\/(\d{1,2})\/(\d{4})\s(\d{2}):(\d{2}):(\d{2})\s(.{1,100})$
 // ===========================================================================
-
-// RE1 — dia no limite inferior (1)
 TEST(RegexParseTest, DiaLimiteInferior) {
     monitora::LogEntry e;
-    EXPECT_TRUE(monitora::ParseLogLine(
-        "1/1/2026 00:00:00 Mensagem", &e));
+    EXPECT_TRUE(monitora::ParseLogLine("1/1/2026 00:00:00 Mensagem", &e));
     EXPECT_EQ(e.day, 1);
 }
 
-// RE2 — dia no limite superior (31)
 TEST(RegexParseTest, DiaLimiteSuperior) {
     monitora::LogEntry e;
     EXPECT_TRUE(monitora::ParseLogLine(
@@ -254,21 +221,18 @@ TEST(RegexParseTest, DiaLimiteSuperior) {
     EXPECT_EQ(e.day, 31);
 }
 
-// RE3 — dia inválido (0) deve falhar
 TEST(RegexParseTest, DiaZeroInvalido) {
     monitora::LogEntry e;
     EXPECT_FALSE(monitora::ParseLogLine(
         "0/1/2026 10:00:00 Mensagem", &e));
 }
 
-// RE4 — dia inválido (32) deve falhar
 TEST(RegexParseTest, DiaTrintaDoisInvalido) {
     monitora::LogEntry e;
     EXPECT_FALSE(monitora::ParseLogLine(
         "32/1/2026 10:00:00 Mensagem", &e));
 }
 
-// RE5 — hora no limite superior (23)
 TEST(RegexParseTest, HoraLimiteSuperior) {
     monitora::LogEntry e;
     EXPECT_TRUE(monitora::ParseLogLine(
@@ -276,14 +240,12 @@ TEST(RegexParseTest, HoraLimiteSuperior) {
     EXPECT_EQ(e.hour, 23);
 }
 
-// RE6 — hora inválida (24) deve falhar
 TEST(RegexParseTest, HoraVinteQuatroInvalida) {
     monitora::LogEntry e;
     EXPECT_FALSE(monitora::ParseLogLine(
         "1/1/2026 24:00:00 Mensagem", &e));
 }
 
-// RE7 — minuto no limite superior (59)
 TEST(RegexParseTest, MinutoLimiteSuperior) {
     monitora::LogEntry e;
     EXPECT_TRUE(monitora::ParseLogLine(
@@ -291,23 +253,19 @@ TEST(RegexParseTest, MinutoLimiteSuperior) {
     EXPECT_EQ(e.minute, 59);
 }
 
-// RE8 — minuto inválido (60) deve falhar
 TEST(RegexParseTest, MinutoSessentaInvalido) {
     monitora::LogEntry e;
     EXPECT_FALSE(monitora::ParseLogLine(
         "1/1/2026 00:60:00 Mensagem", &e));
 }
 
-// RE9 — mensagem com exatamente 100 caracteres (limite)
 TEST(RegexParseTest, MensagemCemCaracteres) {
     monitora::LogEntry e;
     std::string msg(100, 'X');
-    EXPECT_TRUE(monitora::ParseLogLine(
-        "1/1/2026 00:00:00 " + msg, &e));
+    EXPECT_TRUE(monitora::ParseLogLine("1/1/2026 00:00:00 " + msg, &e));
     EXPECT_EQ(e.message.size(), 100u);
 }
 
-// RE10 — mês inválido (13) deve falhar
 TEST(RegexParseTest, MesTrezeInvalido) {
     monitora::LogEntry e;
     EXPECT_FALSE(monitora::ParseLogLine(
@@ -316,60 +274,47 @@ TEST(RegexParseTest, MesTrezeInvalido) {
 
 // ===========================================================================
 // TESTE DE INTEGRAÇÃO — Cenário completo do enunciado
-// Simula o exemplo exato descrito no PDF do professor:
-//   1. Processa c:\logs\log1.txt (2 registros)
-//   2. Processa f:\logs\log1.txt (1 registro no meio)
-//   Resultado: total_log1.txt com 5 registros ordenados
 // ===========================================================================
 TEST(IntegracaoTest, CenarioCompletoDoEnunciado) {
-    // Arrange: arquivos temporários simulando os dois diretórios
-    const std::string log_a     = "test_log1_c.txt";
-    const std::string log_b     = "test_log1_f.txt";
-    const std::string total     = "total_test_log1_c.txt";
-    const std::string list_file = "test_logs_integracao.txt";
-
+    const std::string log_a = "test_log1_c.txt";
+    const std::string log_b = "test_log1_f.txt";
+    const std::string total = "total_test_log1_c.txt";
     std::remove(total.c_str());
 
-    // Simula c:\logs\log1.txt
-    std::ofstream fa(log_a);
-    fa << "16/1/2026 13:27:46 Este e um exemplo de log\n";
-    fa << "20/1/2026 17:45:38 Este e um exemplo de log\n";
-    fa.close();
+    {
+        std::ofstream fa(log_a);
+        fa << "16/1/2026 13:27:46 Este e um exemplo de log\n";
+        fa << "20/1/2026 17:45:38 Este e um exemplo de log\n";
+    }
 
-    // Primeiro processamento
     auto existing = monitora::ReadLogFile(log_a);
     monitora::WriteLogFile(existing, total);
 
-    // Adiciona registros do total existente (simulando estado anterior)
-    std::ofstream ft(total, std::ios::app);
-    ft << "17/1/2026 14:17:46 Este e um exemplo de log\n";
-    ft << "21/1/2026 18:55:38 Este e um exemplo de log\n";
-    ft.close();
+    {
+        std::ofstream ft(total, std::ios::app);
+        ft << "17/1/2026 14:17:46 Este e um exemplo de log\n";
+        ft << "21/1/2026 18:55:38 Este e um exemplo de log\n";
+    }
 
-    // Simula f:\logs\log1.txt
-    std::ofstream fb(log_b);
-    fb << "18/1/2026 11:34:21 Este e um exemplo de log\n";
-    fb.close();
+    {
+        std::ofstream fb(log_b);
+        fb << "18/1/2026 11:34:21 Este e um exemplo de log\n";
+    }
 
-    // Act: merge do segundo log com o total existente
-    auto prev    = monitora::ReadLogFile(total);
-    auto inc     = monitora::ReadLogFile(log_b);
-    auto merged  = monitora::MergeEntries(prev, inc);
+    auto prev   = monitora::ReadLogFile(total);
+    auto inc    = monitora::ReadLogFile(log_b);
+    auto merged = monitora::MergeEntries(prev, inc);
     monitora::WriteLogFile(merged, total);
 
-    // Assert: 5 registros ordenados cronologicamente
     auto result = monitora::ReadLogFile(total);
     ASSERT_EQ(result.size(), 5u);
     EXPECT_EQ(result[0].day, 16);
     EXPECT_EQ(result[1].day, 17);
-    EXPECT_EQ(result[2].day, 18);  // inserido no meio
+    EXPECT_EQ(result[2].day, 18);
     EXPECT_EQ(result[3].day, 20);
     EXPECT_EQ(result[4].day, 21);
 
-    // Cleanup
     std::remove(log_a.c_str());
     std::remove(log_b.c_str());
     std::remove(total.c_str());
-    std::remove(list_file.c_str());
 }
-
