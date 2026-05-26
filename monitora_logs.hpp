@@ -33,6 +33,9 @@ struct LogEntry {
 
     /** @brief Ordenação cronológica estrita. */
     bool operator<(const LogEntry& o) const;
+
+    /** @brief Serializa o registro no formato DD/M/AAAA HH:MM:SS Mensagem. */
+    std::string ToString() const;
 };
 
 // ===========================================================================

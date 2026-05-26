@@ -27,6 +27,14 @@ bool LogEntry::operator<(const LogEntry& o) const {
     return second < o.second;
 }
 
+std::string LogEntry::ToString() const {
+    std::ostringstream oss;
+    oss << day << "/" << month << "/" << year << " "
+        << hour << ":" << minute << ":" << second
+        << " " << message;
+    return oss.str();
+}
+
 bool IsFileReadable(const std::string& path) {
     std::ifstream f(path);
     return f.good();
@@ -123,9 +131,7 @@ void WriteLogFile(const std::vector<LogEntry>& entries,
         throw std::runtime_error("Nao foi possivel criar: " + out_path);
 
     for (const auto& e : entries) {
-        file << e.day << "/" << e.month << "/" << e.year << " "
-             << e.hour << ":" << e.minute << ":" << e.second
-             << " " << e.message << "\n";
+        file << e.ToString() << "\n";
     }
 }
 
@@ -139,7 +145,6 @@ void WriteLogFile(const std::vector<LogEntry>& entries,
  * @post O retorno começa com "total_".
  */
 std::string BuildTotalPath(const std::string& log_path) {
-    // Encontra o último separador (/ ou \)
     size_t pos = log_path.find_last_of("/\\");
     std::string filename = (pos == std::string::npos)
                            ? log_path
